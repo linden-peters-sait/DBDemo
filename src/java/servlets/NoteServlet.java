@@ -5,6 +5,7 @@
  */
 package servlets;
 
+import data.ConnectionPool;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.Connection;
@@ -39,13 +40,9 @@ public class NoteServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
-            String dbURL = "jdbc:mysql://localhost:3306/dbdemo";
-            String username = "username";
-            String password = "password";
-            Class.forName("com.mysql.jdbc.Driver");
-            Connection connection = DriverManager.getConnection(
-                dbURL, username, password);
-            PreparedStatement stmt = connection.prepareStatement("SELECT * FROM `note`");
+            ConnectionPool pool = ConnectionPool.getInstance();
+            Connection conn = pool.getConnection();
+            PreparedStatement stmt = conn.prepareStatement("SELECT * FROM `note`");
             ResultSet result = stmt.executeQuery();
             ArrayList<String> notes = new ArrayList<String>();
             while (result.next()) {
@@ -54,6 +51,7 @@ public class NoteServlet extends HttpServlet {
                 System.out.println("Note #"+noteId+": \""+noteContent+"\"");
                 notes.add(noteContent);
             }
+            pool.freeConnection(conn);
             request.setAttribute("notes", notes);
         } catch(SQLException e) {
             for (Throwable t : e)
@@ -78,15 +76,12 @@ public class NoteServlet extends HttpServlet {
         String fldNote = request.getParameter("fldNote");
         if (fldNote != null && !fldNote.equals("")) {
             try {
-                String dbURL = "jdbc:mysql://localhost:3306/dbdemo";
-                String username = "username";
-                String password = "password";
-                Class.forName("com.mysql.jdbc.Driver");
-                Connection connection = DriverManager.getConnection(
-                    dbURL, username, password);
-                PreparedStatement stmt = connection.prepareStatement("INSERT INTO `note` (`content`) VALUES (?)");
+                ConnectionPool pool = ConnectionPool.getInstance();
+                Connection conn = pool.getConnection();
+                PreparedStatement stmt = conn.prepareStatement("INSERT INTO `note` (`content`) VALUES (?)");
                 stmt.setString(1, fldNote);
                 int result = stmt.executeUpdate();
+                pool.freeConnection(conn);
                 System.out.println("Rows Affected: "+result);
             } catch(SQLException e) {
                 for (Throwable t : e)
